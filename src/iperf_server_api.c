@@ -187,19 +187,31 @@ iperf_accept(struct iperf_test *test)
         /* Server free, accept new client */
         test->ctrl_sck = s;
         // set TCP_NODELAY for lower latency on control messages
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+        /* In fuzzing mode, setsockopt is a no-op and always succeeds */
+        (void)s;
+        /* Do nothing, pretend success */
+#else
         int flag = 1;
         if (setsockopt(test->ctrl_sck, IPPROTO_TCP, TCP_NODELAY, (char *) &flag, sizeof(int))) {
             i_errno = IESETNODELAY;
             goto error_handling;
         }
+#endif
 
 #if defined(HAVE_TCP_USER_TIMEOUT)
         int opt;
         if ((opt = test->settings->snd_timeout)) {
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+            /* In fuzzing mode, setsockopt is a no-op and always succeeds */
+            (void)s; (void)opt;
+            /* Do nothing, pretend success */
+#else
             if (setsockopt(s, IPPROTO_TCP, TCP_USER_TIMEOUT, &opt, sizeof(opt)) < 0) {
                 i_errno = IESETUSERTIMEOUT;
                 goto error_handling;
             }
+#endif
         }
 #endif /* HAVE_TCP_USER_TIMEOUT */
 
