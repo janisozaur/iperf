@@ -59,6 +59,10 @@
 #include "iperf_util.h"
 #include "iperf_locale.h"
 
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+#include "iperf_fuzz.h"
+#endif
+
 #if defined(HAVE_TCP_CONGESTION)
 #if !defined(TCP_CA_NAME_MAX)
 #define TCP_CA_NAME_MAX 16
@@ -112,6 +116,15 @@ iperf_server_worker_run(void *s) {
 int
 iperf_server_listen(struct iperf_test *test)
 {
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    /* In fuzzing mode, use a fake listener socket */
+    test->listener = 1000; /* Fake FD */
+    FD_ZERO(&test->read_set);
+    FD_ZERO(&test->write_set);
+    FD_SET(test->listener, &test->read_set);
+    if (test->listener > test->max_fd) test->max_fd = test->listener;
+    return 0;
+#else
     retry:
     if((test->listener = netannounce(test->settings->domain, Ptcp, test->bind_address, test->bind_dev, test->server_port)) < 0) {
 	if (errno == EAFNOSUPPORT && (test->settings->domain == AF_INET6 || test->settings->domain == AF_UNSPEC)) {
@@ -147,6 +160,7 @@ iperf_server_listen(struct iperf_test *test)
     if (test->listener > test->max_fd) test->max_fd = test->listener;
 
     return 0;
+#endif /* FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION */
 }
 
 int
@@ -159,10 +173,15 @@ iperf_accept(struct iperf_test *test)
     struct sockaddr_storage addr;
 
     len = sizeof(addr);
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    /* In fuzzing mode, use a fake socket */
+    s = 1001; /* Fake FD for accepted connection */
+#else
     if ((s = accept(test->listener, (struct sockaddr *) &addr, &len)) < 0) {
         i_errno = IEACCEPT;
         return ret;
     }
+#endif
 
     if (test->ctrl_sck == -1) {
         /* Server free, accept new client */
@@ -632,7 +651,12 @@ iperf_run_server(struct iperf_test *test)
             timeout = &used_timeout;
         }
 
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+        /* In fuzzing mode, check if we have data available, otherwise timeout */
+        result = iperf_fuzz_has_data() ? 1 : 0;
+#else
         result = select(test->max_fd + 1, &read_set, &write_set, NULL, timeout);
+#endif
         if (result < 0 && errno != EINTR) {
             cleanup_server(test);
             i_errno = IESELECT;

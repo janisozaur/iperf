@@ -65,6 +65,10 @@
 #include "net.h"
 #include "timer.h"
 
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+#include "iperf_fuzz.h"
+#endif
+
 static int nread_read_timeout = 10;
 static int nread_overall_timeout = 30;
 
@@ -382,6 +386,14 @@ Nread(int fd, char *buf, size_t count, int prot)
 int
 Nrecv(int fd, char *buf, size_t count, int prot, int sock_opt)
 {
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    /* In fuzzing mode, read from AFL buffer instead of network */
+    ssize_t r = iperf_fuzz_recv(fd, buf, count, sock_opt);
+    if (r < 0) {
+        return NET_HARDERROR;
+    }
+    return r;
+#else
     register ssize_t r;
     register size_t nleft = count;
     struct iperf_time ftimeout = { 0, 0 };
@@ -470,6 +482,7 @@ Nrecv(int fd, char *buf, size_t count, int prot, int sock_opt)
         }
     }
     return count - nleft;
+#endif /* FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION */
 }
 
 /********************************************************************/
@@ -487,6 +500,14 @@ Nread_no_select(int fd, char *buf, size_t count, int prot)
 int
 Nrecv_no_select(int fd, char *buf, size_t count, int prot, int sock_opt)
 {
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    /* In fuzzing mode, read from AFL buffer instead of network */
+    ssize_t r = iperf_fuzz_recv(fd, buf, count, sock_opt);
+    if (r < 0) {
+        return NET_HARDERROR;
+    }
+    return r;
+#else
     register ssize_t r;
     register size_t nleft = count;
 
@@ -518,6 +539,7 @@ Nrecv_no_select(int fd, char *buf, size_t count, int prot, int sock_opt)
 
     }
     return count - nleft;
+#endif /* FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION */
 }
 
 
@@ -528,6 +550,13 @@ Nrecv_no_select(int fd, char *buf, size_t count, int prot, int sock_opt)
 int
 Nwrite(int fd, const char *buf, size_t count, int prot)
 {
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    /* In fuzzing mode, pretend writes succeed */
+    (void)fd;
+    (void)buf;
+    (void)prot;
+    return (int)count;
+#else
     register ssize_t r;
     register size_t nleft = count;
 
@@ -557,6 +586,7 @@ Nwrite(int fd, const char *buf, size_t count, int prot)
 	buf += r;
     }
     return count;
+#endif /* FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION */
 }
 
 

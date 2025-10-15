@@ -1,0 +1,61 @@
+# Makefile for building iperf3 with AFL++ fuzzing support
+#
+# Usage:
+#   make -f Makefile.fuzz
+#   afl-fuzz -i fuzz_input -o fuzz_output -- ./iperf3_fuzz
+
+CC = afl-clang-fast
+CFLAGS = -g -O2 -Wall -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+LDFLAGS = -lm
+
+# Source files needed for fuzzing
+COMMON_SRCS = \
+	src/cjson.c \
+	src/iperf_api.c \
+	src/iperf_error.c \
+	src/iperf_auth.c \
+	src/iperf_client_api.c \
+	src/iperf_locale.c \
+	src/iperf_server_api.c \
+	src/iperf_tcp.c \
+	src/iperf_udp.c \
+	src/iperf_sctp.c \
+	src/iperf_util.c \
+	src/iperf_time.c \
+	src/iperf_pthread.c \
+	src/dscp.c \
+	src/net.c \
+	src/tcp_info.c \
+	src/timer.c \
+	src/units.c
+
+FUZZ_SRCS = src/iperf_fuzz.c
+
+OBJS = $(COMMON_SRCS:.c=.o) $(FUZZ_SRCS:.c=.o)
+
+TARGET = iperf3_fuzz
+
+.PHONY: all clean
+
+all: $(TARGET)
+
+$(TARGET): $(OBJS)
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+
+%.o: %.c
+	$(CC) $(CFLAGS) -Isrc -c $< -o $@
+
+clean:
+	rm -f $(OBJS) $(TARGET)
+
+# Create initial seed corpus directory
+seed:
+	mkdir -p fuzz_input
+	# Create a minimal valid iperf cookie (37 bytes)
+	echo -n "iperf3-cookie-000000000000000000000" > fuzz_input/cookie
+	# Add a control message
+	printf '\x09' > fuzz_input/test_start
+	# Add a test end message  
+	printf '\x0a' > fuzz_input/test_end
+
+.PHONY: seed

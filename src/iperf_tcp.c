@@ -45,6 +45,10 @@
 #include "net.h"
 #include "cjson.h"
 
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+#include "iperf_fuzz.h"
+#endif
+
 #if defined(HAVE_FLOWLABEL)
 #include "flowlabel.h"
 #endif /* HAVE_FLOWLABEL */
@@ -131,10 +135,15 @@ iperf_tcp_accept(struct iperf_test * test)
     struct sockaddr_storage addr;
 
     len = sizeof(addr);
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    /* In fuzzing mode, use a fake socket */
+    s = 1002; /* Fake stream FD */
+#else
     if ((s = accept(test->listener, (struct sockaddr *) &addr, &len)) < 0) {
         i_errno = IESTREAMCONNECT;
         return -1;
     }
+#endif
 #if defined(HAVE_SO_MAX_PACING_RATE)
     /* If fq socket pacing is specified, enable it. */
 
