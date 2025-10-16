@@ -1977,6 +1977,9 @@ void iperf_close_logfile(struct iperf_test *test)
     }
 }
 
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+int iperf_set_send_state(struct iperf_test *test, signed char state) { iperf_set_test_state(test, state); return 0; }
+#else
 int
 iperf_set_send_state(struct iperf_test *test, signed char state)
 {
@@ -1989,6 +1992,7 @@ iperf_set_send_state(struct iperf_test *test, signed char state)
     }
     return 0;
 }
+#endif
 
 void
 iperf_check_throttle(struct iperf_stream *sp, struct iperf_time *nowP)
