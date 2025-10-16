@@ -289,7 +289,6 @@ iperf_handle_message_server(struct iperf_test *test)
         iperf_printf(test, "Reading new State from the Client - current state is %d-%s\n", test->state, state_to_text(test->state));
     }
 
-    abort();
     // XXX: Need to rethink how this behaves to fit API
     if ((rval = Nread(test->ctrl_sck, (char*) &test->state, sizeof(signed char), Ptcp)) <= 0) {
         if (rval == 0) {
@@ -753,6 +752,16 @@ iperf_run_server(struct iperf_test *test)
 
 	if (result > 0) {
             if (FD_ISSET(test->listener, &read_set)) {
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+                printf("In fuzzing mode, accepting connection without checking state\n");
+                /* In fuzzing mode, always accept connections regardless of state */
+                if (iperf_accept(test) < 0) {
+                        printf("Error in accept\n");
+                    cleanup_server(test);
+                    return -1;
+                }
+                FD_CLR(test->listener, &read_set);
+#else
                 if (test->state != CREATE_STREAMS) {
                     if (iperf_accept(test) < 0) {
 			cleanup_server(test);
@@ -772,6 +781,7 @@ iperf_run_server(struct iperf_test *test)
                         streams_to_rec = 0;
                     }
                 }
+#endif
             }
             if (FD_ISSET(test->ctrl_sck, &read_set)) {
                 if (iperf_handle_message_server(test) < 0) {

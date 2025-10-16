@@ -2274,7 +2274,9 @@ int test_is_authorized(struct iperf_test *test){
  * iperf_exchange_parameters - handles the param_Exchange part for client
  *
  */
-
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+int iperf_exchange_parameters(struct iperf_test *test) { (void)test; return 0; }
+#else
 int
 iperf_exchange_parameters(struct iperf_test *test)
 {
@@ -2351,6 +2353,7 @@ iperf_exchange_parameters(struct iperf_test *test)
 
     return 0;
 }
+#endif
 
 /*************************************************************/
 
