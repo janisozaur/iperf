@@ -321,8 +321,10 @@ iperf_handle_message_server(struct iperf_test *test)
             test->reporter_callback(test);
             if (iperf_set_send_state(test, EXCHANGE_RESULTS) != 0)
                 return -1;
+#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
             if (iperf_exchange_results(test) < 0)
                 return -1;
+#endif
             if (iperf_set_send_state(test, DISPLAY_RESULTS) != 0)
                 return -1;
             if (test->on_test_finish)
