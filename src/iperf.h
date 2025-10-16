@@ -406,6 +406,12 @@ struct iperf_test
     uint server_test_number;                     /* count number of tests performed by a server */
 
     char      cookie[COOKIE_SIZE];
+
+    /* Demo bug: buffer for tracking client state */
+    char     *demo_buffer;                       /* allocated buffer for demo */
+    int       should_free_buffer;                 /* tracking whether buffer is freed */
+    int       send_malicious_cookie;             /* option to send cookie that triggers bug */
+
 //    struct iperf_stream *streams;               /* pointer to list of struct stream */
     SLIST_HEAD(slisthead, iperf_stream) streams;
     struct iperf_settings *settings;

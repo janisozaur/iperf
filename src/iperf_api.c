@@ -1191,6 +1191,7 @@ iperf_parse_arguments(struct iperf_test *test, int argc, char **argv)
 #endif
         {"debug", optional_argument, NULL, 'd'},
         {"help", no_argument, NULL, 'h'},
+        {"malicious-cookie", no_argument, NULL, OPT_MALICIOUS_COOKIE},  /* Demo: trigger double-free bug */
         {NULL, 0, NULL, 0}
     };
     int flag;
@@ -1563,6 +1564,11 @@ iperf_parse_arguments(struct iperf_test *test, int argc, char **argv)
                     return -1;
                 }
                 server_flag = 1;
+                break;
+            case OPT_MALICIOUS_COOKIE:
+                /* Demo: Enable sending malicious cookie to trigger double-free bug */
+                test->send_malicious_cookie = 1;
+                client_flag = 1;
                 break;
             case OPT_RCV_TIMEOUT:
                 rcv_timeout_in = atoi(optarg);

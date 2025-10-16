@@ -48,7 +48,9 @@
 #include "net.h"
 #include "units.h"
 
+#ifdef __clang__
 #include "xray/xray_log_interface.h"
+#endif
 
 static int run(struct iperf_test *test);
 

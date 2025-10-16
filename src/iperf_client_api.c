@@ -428,6 +428,12 @@ iperf_connect(struct iperf_test *test)
 
     make_cookie(test->cookie);
 
+    /* Demo bug trigger: if requested, send malicious cookie */
+    if (test->send_malicious_cookie) {
+        test->cookie[0] = 0x00;  /* Will be set to 0xDE by buggy assignment */
+        test->cookie[1] = MAGIC_FREE;  /* This triggers the bug condition */
+    }
+
     /* Create and connect the control channel */
     if (test->ctrl_sck < 0)
 	// Create the control channel using an ephemeral port

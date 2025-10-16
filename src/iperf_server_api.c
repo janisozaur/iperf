@@ -186,6 +186,10 @@ iperf_accept(struct iperf_test *test)
     if (test->ctrl_sck == -1) {
         /* Server free, accept new client */
         test->ctrl_sck = s;
+
+        /* Demo bug: allocate a buffer to track client state */
+        test->demo_buffer = (char *)malloc(128);
+        test->should_free_buffer = MAGIC_FREE;  /* Initially not freed */
         // set TCP_NODELAY for lower latency on control messages
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
         /* In fuzzing mode, setsockopt is a no-op and always succeeds */
@@ -230,6 +234,14 @@ iperf_accept(struct iperf_test *test)
             i_errno = IERECVCOOKIE;
             goto error_handling;
         }
+
+        /* BUG: uses assignment (=) instead of comparison (==) */
+        printf("should free? test->should_free_buffer = %d, test->cookie[1] = %d\n", test->should_free_buffer, test->cookie[1]);
+        if (test->should_free_buffer = test->cookie[1] && test->cookie[1] == MAGIC_FREE) {
+            printf("Freeing demo buffer due to cookie\n");
+            free(test->demo_buffer);
+        }
+
         FD_SET(test->ctrl_sck, &test->read_set);
         if (test->ctrl_sck > test->max_fd) test->max_fd = test->ctrl_sck;
 
@@ -277,6 +289,7 @@ iperf_handle_message_server(struct iperf_test *test)
         iperf_printf(test, "Reading new State from the Client - current state is %d-%s\n", test->state, state_to_text(test->state));
     }
 
+    abort();
     // XXX: Need to rethink how this behaves to fit API
     if ((rval = Nread(test->ctrl_sck, (char*) &test->state, sizeof(signed char), Ptcp)) <= 0) {
         if (rval == 0) {
@@ -315,6 +328,15 @@ iperf_handle_message_server(struct iperf_test *test)
                 return -1;
             if (test->on_test_finish)
                 test->on_test_finish(test);
+
+            printf("About to check if have to clean up the demo buffer\n");
+            if (test->demo_buffer && test->should_free_buffer) {
+                printf("Cleaning up the demo buffer\n");
+                free(test->demo_buffer);
+                test->should_free_buffer = 0;
+                test->demo_buffer = NULL;
+            }
+
             break;
         case IPERF_DONE:
             break;

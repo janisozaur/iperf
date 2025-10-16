@@ -106,6 +106,7 @@ typedef atomic_uint_fast64_t atomic_iperf_size_t;
 #define OPT_SKIP_RX_COPY 32
 #define OPT_JSON_STREAM_FULL_OUTPUT 33
 #define OPT_SERVER_MAX_DURATION 34
+#define OPT_MALICIOUS_COOKIE 35  /* Demo bug trigger */
 
 /* states */
 #define TEST_START 1
@@ -516,6 +517,8 @@ enum {
     IENEWTIMER = 300,       // Unable to create new timer (check perror)
     IEUPDATETIMER = 301,    // Unable to update timer (check perror)
 };
+
+#define MAGIC_FREE 0x7f
 
 
 #ifdef __cplusplus
