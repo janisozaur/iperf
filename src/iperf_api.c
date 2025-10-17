@@ -5037,6 +5037,45 @@ iperf_catch_sigend(void (*handler)(int))
 #ifdef SIGHUP
     signal(SIGHUP, handler);
 #endif
+    /* SIGUSR1 and SIGUSR2 are NOT termination signals - they're handled separately */
+}
+
+/**
+ * Handle SIGUSR1 and SIGUSR2 for XRay tracing without interrupting the test.
+ * These signals do NOT terminate iperf3.
+ */
+void
+iperf_handle_sigusr(int sig)
+{
+#ifdef SIGUSR1
+    if (sig == SIGUSR1) {
+        printf("XRay patching\n");
+        __xray_patch();
+        enum XRayLogRegisterStatus register_status = __xray_log_select_mode("xray-fdr");
+        assert(register_status == XRAY_REGISTRATION_OK);
+        enum XRayLogInitStatus status = __xray_log_init_mode(
+                "xray-fdr",
+                "buffer_size=8192:buffer_max=1024:func_duration_threshold_us=0:no_file_flush=false");
+        assert(status == XRAY_LOG_INITIALIZED);
+        return;
+    }
+#endif
+#ifdef SIGUSR2
+    if (sig == SIGUSR2) {
+        printf("XRay finalizing log\n");
+        enum XRayLogInitStatus log_finalize_status = __xray_log_finalize();
+        assert(log_finalize_status == XRAY_LOG_FINALIZED);
+        enum XRayLogFlushStatus flush_status = __xray_log_flushLog();
+        assert(flush_status == XRAY_LOG_FLUSHED);
+        __xray_unpatch();
+        return;
+    }
+#endif
+}
+
+void
+iperf_catch_sigusr(void (*handler)(int))
+{
 #ifdef SIGUSR1
     signal(SIGUSR1, handler);
 #endif
@@ -5090,28 +5129,6 @@ iperf_got_sigend(struct iperf_test *test, int sig)
 #ifdef SIGHUP
     if (sig == SIGHUP)
         exit_normal = 1;
-#endif
-#ifdef SIGUSR1
-    if (sig == SIGUSR1) {
-        printf("XRay patching\n");
-        __xray_patch();
-        enum XRayLogRegisterStatus register_status = __xray_log_select_mode("xray-fdr");
-        assert(register_status == XRAY_REGISTRATION_OK);
-        enum XRayLogInitStatus status = __xray_log_init_mode(
-                "xray-fdr",
-                "buffer_size=8192:buffer_max=1024:func_duration_threshold_us=0:no_file_flush=false");
-        assert(status == XRAY_LOG_INITIALIZED);
-    }
-#endif
-#ifdef SIGUSR2
-    if (sig == SIGUSR2) {
-        printf("XRay finalizing log\n");
-        enum XRayLogInitStatus log_finalize_status = __xray_log_finalize();
-        assert(log_finalize_status == XRAY_LOG_FINALIZED);
-        enum XRayLogFlushStatus flush_status = __xray_log_flushLog();
-        assert(flush_status == XRAY_LOG_FLUSHED);
-        __xray_unpatch();
-    }
 #endif
     if (exit_normal) {
         iperf_signormalexit(test, "interrupt - %s by signal %s(%d)", iperf_strerror(i_errno), strsignal(sig), sig);

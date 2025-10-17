@@ -148,6 +148,9 @@ run(struct iperf_test *test)
     if (setjmp(sigend_jmp_buf))
 	iperf_got_sigend(test, signed_sig);
 
+    /* Non-termination signals for XRay tracing */
+    iperf_catch_sigusr(iperf_handle_sigusr);
+
     /* Ignore SIGPIPE to simplify error handling */
     signal(SIGPIPE, SIG_IGN);
 
