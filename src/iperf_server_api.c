@@ -86,6 +86,12 @@ iperf_server_worker_run(void *s) {
 #ifdef SIGINT
     sigaddset(&set, SIGINT);
 #endif
+#ifdef SIGUSR1
+    sigaddset(&set, SIGUSR1);
+#endif
+#ifdef SIGUSR2
+    sigaddset(&set, SIGUSR2);
+#endif
     if (pthread_sigmask(SIG_BLOCK, &set, NULL) != 0) {
 	    i_errno = IEPTHREADSIGMASK;
 	    goto cleanup_and_fail;

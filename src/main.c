@@ -48,10 +48,6 @@
 #include "net.h"
 #include "units.h"
 
-#ifdef __clang__
-#include "xray/xray_log_interface.h"
-#endif
-
 static int run(struct iperf_test *test);
 
 
@@ -60,7 +56,6 @@ int
 main(int argc, char **argv)
 {
     struct iperf_test *test;
-    __xray_patch();
     /*
      * Atomics check. We prefer to have atomic types (which is
      * basically on any compiler supporting C11 or better). If we
@@ -172,12 +167,7 @@ run(struct iperf_test *test)
 	    }
             for (;;) {
 		int rc;
-                enum XRayLogRegisterStatus register_status = __xray_log_select_mode("xray-fdr");
-                assert(register_status == XRAY_REGISTRATION_OK);
-                enum XRayLogInitStatus status = __xray_log_init_mode(
-                        "xray-fdr",
-                        "buffer_size=8192:buffer_max=1024:func_duration_threshold_us=0:no_file_flush=false");
-                assert(status == XRAY_LOG_INITIALIZED);
+
 		rc = iperf_run_server(test);
                 test->server_last_run_rc = rc;
 		if (rc < 0) {
@@ -193,10 +183,6 @@ run(struct iperf_test *test)
 		    }
                 }
                 iperf_reset_test(test);
-                enum XRayLogInitStatus log_finalize_status = __xray_log_finalize();
-                assert(log_finalize_status == XRAY_LOG_FINALIZED);
-                enum XRayLogFlushStatus flush_status = __xray_log_flushLog();
-                assert(flush_status == XRAY_LOG_FLUSHED);
                 if (iperf_get_test_one_off(test) && rc != 2) {
 		    /* Authentication failure doesn't count for 1-off test */
 		    if (rc < 0 && i_errno == IEAUTHTEST) {

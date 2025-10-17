@@ -26,6 +26,7 @@
  */
 #ifndef _GNU_SOURCE
 # define _GNU_SOURCE
+#include <xray/xray_interface.h>
 #endif
 #define __USE_GNU
 
@@ -54,6 +55,10 @@
 #include <sched.h>
 #include <setjmp.h>
 #include <math.h>
+
+#ifdef __clang__
+#include "xray/xray_log_interface.h"
+#endif
 
 #if defined(HAVE_CPUSET_SETAFFINITY)
 #include <sys/param.h>
@@ -5032,6 +5037,12 @@ iperf_catch_sigend(void (*handler)(int))
 #ifdef SIGHUP
     signal(SIGHUP, handler);
 #endif
+#ifdef SIGUSR1
+    signal(SIGUSR1, handler);
+#endif
+#ifdef SIGUSR2
+    signal(SIGUSR2, handler);
+#endif
 }
 
 /**
@@ -5079,6 +5090,28 @@ iperf_got_sigend(struct iperf_test *test, int sig)
 #ifdef SIGHUP
     if (sig == SIGHUP)
         exit_normal = 1;
+#endif
+#ifdef SIGUSR1
+    if (sig == SIGUSR1) {
+        printf("XRay patching\n");
+        __xray_patch();
+        enum XRayLogRegisterStatus register_status = __xray_log_select_mode("xray-fdr");
+        assert(register_status == XRAY_REGISTRATION_OK);
+        enum XRayLogInitStatus status = __xray_log_init_mode(
+                "xray-fdr",
+                "buffer_size=8192:buffer_max=1024:func_duration_threshold_us=0:no_file_flush=false");
+        assert(status == XRAY_LOG_INITIALIZED);
+    }
+#endif
+#ifdef SIGUSR2
+    if (sig == SIGUSR2) {
+        printf("XRay finalizing log\n");
+        enum XRayLogInitStatus log_finalize_status = __xray_log_finalize();
+        assert(log_finalize_status == XRAY_LOG_FINALIZED);
+        enum XRayLogFlushStatus flush_status = __xray_log_flushLog();
+        assert(flush_status == XRAY_LOG_FLUSHED);
+        __xray_unpatch();
+    }
 #endif
     if (exit_normal) {
         iperf_signormalexit(test, "interrupt - %s by signal %s(%d)", iperf_strerror(i_errno), strsignal(sig), sig);
