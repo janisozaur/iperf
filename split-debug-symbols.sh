@@ -1,5 +1,9 @@
 #!/bin/bash
-clang -g -fxray-instrument -fxray-instruction-threshold=1 -Wall -g -o src/iperf3 src/iperf3-main.o  src/.libs/libiperf.a -lpthread -pthread
-objcopy --only-keep-debug src/iperf3 src/iperf3.debug
-objcopy --strip-debug src/iperf3
-objcopy --add-gnu-debuglink=src/iperf3.debug src/iperf3
+pushd src
+clang -g -fxray-instrument -fxray-instruction-threshold=1 -Wall -g -o iperf3 iperf3-main.o  .libs/libiperf.a -lpthread -pthread
+objcopy --only-keep-debug iperf3 iperf3.debug
+objcopy --strip-debug iperf3
+objcopy --add-gnu-debuglink=iperf3.debug iperf3
+popd
+mkdir -p debugsymbols
+mv src/iperf3.debug debugsymbols/
