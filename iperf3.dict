@@ -1,0 +1,79 @@
+# AFL dictionary for iperf3 protocol
+# This helps AFL generate more meaningful mutations
+
+# Cookie prefix
+"iperf3"
+"cookie"
+
+# State transitions (signed char values)
+"\x00"  # TEST_START = 1
+"\x01"  # TEST_RUNNING = 2  
+"\x02"  # RESULT_REQUEST = 3
+"\x03"  # TEST_END = 4
+"\x04"  # STREAM_BEGIN = 5
+"\x05"  # STREAM_RUNNING = 6
+"\x06"  # STREAM_END = 7
+"\x07"  # ALL_STREAMS_END = 8
+"\x08"  # PARAM_EXCHANGE = 9
+"\x09"  # CREATE_STREAMS = 10
+"\x0a"  # SERVER_TERMINATE = 11
+"\x0b"  # CLIENT_TERMINATE = 12
+"\x0c"  # EXCHANGE_RESULTS = 13
+"\x0d"  # DISPLAY_RESULTS = 14
+"\x0e"  # IPERF_START = 15
+"\x0f"  # IPERF_DONE = 16
+"\x10"  # ACCESS_DENIED = -1
+"\x11"  # SERVER_ERROR = -2
+
+# Common JSON keys
+"tcp"
+"udp"
+"sctp"
+"omit"
+"time"
+"num"
+"blockcount"
+"parallel"
+"reverse"
+"window"
+"len"
+"bandwidth"
+"pacing_timer"
+"fqrate"
+"bitrate"
+"interval"
+"bytes"
+"blocks"
+"streams"
+"congestion"
+"version"
+
+# Port numbers as strings
+"5201"
+"5202"
+
+# Boolean values
+"true"
+"false"
+
+# Common numbers
+"1"
+"10"
+"100"
+"1000"
+"10000"
+
+# JSON structure
+"{"
+"}"
+"["
+"]"
+":"
+","
+"\""
+
+# Protocol markers
+"\x00\x00\x00\x00"  # 32-bit zero
+"\xff\xff\xff\xff"  # 32-bit max
+"\x00\x01"          # 16-bit values
+"\xff\xff"
