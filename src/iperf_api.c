@@ -26,7 +26,6 @@
  */
 #ifndef _GNU_SOURCE
 # define _GNU_SOURCE
-#include <xray/xray_interface.h>
 #endif
 #define __USE_GNU
 
@@ -5047,6 +5046,7 @@ iperf_catch_sigend(void (*handler)(int))
 void
 iperf_handle_sigusr(int sig)
 {
+#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
 #ifdef SIGUSR1
     if (sig == SIGUSR1) {
         printf("XRay patching\n");
@@ -5070,6 +5070,7 @@ iperf_handle_sigusr(int sig)
         __xray_unpatch();
         return;
     }
+#endif
 #endif
 }
 
